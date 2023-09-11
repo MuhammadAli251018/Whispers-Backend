@@ -1,0 +1,23 @@
+{
+  "name": "whispers-backend",
+  "version": "1.0.0",
+  "description": "Backend for Whispers chat application",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Muhammad Ali",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "joi": "^17.10.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.5.0",
+    "nodemailer": "^6.9.5",
+    "uuid": "^9.0.0",
+    "ws": "^8.14.1"
+  }
+}
