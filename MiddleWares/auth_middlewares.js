@@ -1,7 +1,9 @@
 
 const Joi = require('joi');
 const userDB = require('../DataBase/usersDB')
+const userSecretsDB = require('../DataBase/userSecretsDB');
 const tempUserDB = require('../DataBase/tempUserDB')
+const idService = require('../Util/idService')
 const hashingService = require('../Util/hashingService')
 
 async function validateUserSignupInput(req, res, next) {
@@ -20,6 +22,67 @@ async function validateUserSignupInput(req, res, next) {
         res.status(400).json(err);
     }
 }
+
+async function validateUserLoginInput(req, res, next) {
+    try {
+        console.log('stag1');
+        let schema = Joi.object({
+            email: Joi.string().email().required(),
+            password: Joi.string().required()
+        });
+
+        req.userCredintials = await schema.validateAsync(req.body);
+        next();
+        }
+    catch (err) {
+        res.status(400).json(err);
+    }
+}
+
+async function verifyUserIsRegistered(req, res, next) {
+    try {
+        console.log('stag2');
+
+        const user = await userDB.getUserByEmail(req.userCredintials.email);
+        console.log(user);
+        if (user) {
+            req.userCredintials.hash = await userSecretsDB.getSecretById(idService.getPrivateId(user.publicId));
+            req.userCredintials.name = user.firstName + ' ' + user.lastName;
+            req.userCredintials.publicId = user.publicId;
+            req.userCredintials.privateId = idService.getPrivateId(user.publicId);
+            next();
+        }
+        else {        
+            
+            res.status(400).send('User is not registered');
+        }
+    }
+    catch (err) {
+        res.status(400).json(err);
+    }
+    
+}
+
+
+async function compareLoginUserCredintials(req, res, next) {
+    
+    try {
+        console.log('stag3');
+        const result = hashingService.comparePassword(req.userCredintials.password, req.userCredintials.hash)
+        if (result ) {
+            next();
+        }
+        else {
+            res.status(400).json({message: 'Invalid password'})
+        }
+
+    }
+    catch (err) {
+        console.error(err);
+        res.status(500).send('something went wrong');
+    };
+}
+
 
 async function validateEmailVerificationInput(req, res, next) {
     try {
@@ -40,16 +103,12 @@ async function validateEmailVerificationInput(req, res, next) {
 async function verifyEmail(req, res, next) {
     const verification = req.emailVerification;
     
-    console.log('stage 1');
-
     try {
         const userInfo = await tempUserDB.getUserTempById(verification.publicId)
 
         if (!userInfo) {
             res.status(400).json({ message: 'Invalid Id'})
         }
-
-        console.log('stage 2');
 
         req.userToAdd = {
             firstName: userInfo.firstName,
@@ -116,7 +175,7 @@ async function hashUserPasswords(req, res, next) {
 
 async function verifyUserIsNotRegistered(req, res, next) {
     try {
-        user = await userDB.getUserByEmail(req.newUser.email);
+        const user = await userDB.getUserByEmail(req.newUser.email);
         if (user) {
             res.status(400).send('User is already registered')
         }
@@ -135,5 +194,8 @@ module.exports = {
     validateEmailVerificationInput,
     verifyUserIsNotRegistered,
     hashUserPasswords,
-    verifyEmail
+    verifyEmail,
+    validateUserLoginInput,
+    verifyUserIsRegistered,
+    compareLoginUserCredintials
 };

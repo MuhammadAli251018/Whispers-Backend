@@ -6,9 +6,12 @@ function generateToken(name, publicId, privateId) {
         publicId: publicId,
     }
 
-    expiereTime = Date.now() + (1000 * 60 * 60 * 24 * 30) // 30 Days;
+    return jwt.sign(payload, privateId, {expiresIn: '30d'})
+}
 
-    return token = jwt.sign(payload, privateId, {expiresIn: '30d'})
+function getIdFromToken(token) {
+    const payload = jwt.decode(token);
+    return payload.publicId;
 }
 
 function verifyToken(token, privateId) {
@@ -17,5 +20,6 @@ function verifyToken(token, privateId) {
 
 module.exports = {
     generateToken,
-    verifyToken
+    verifyToken,
+    getIdFromToken
 }

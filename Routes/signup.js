@@ -1,8 +1,3 @@
-//Resposiplities of the file
-// 1- Verify user does not exist in DB
-// 2- Verify user Email
-// 3- Add User to DB
-// 4- Generate Token for the user
 
 const express = require('express');
 const auth_middlewares = require('../MiddleWares/auth_middlewares');
@@ -11,16 +6,15 @@ const idService = require('../Util/idService');
 const secretsBD = require('../DataBase/userSecretsDB');
 const tempBD = require('../DataBase/tempUserDB');
 const verifyCredentialsService = require('../Util/verifyCredintialService');
+const tokenService = require('../Util/TokenService');
 const router = express.Router();
 
+//todo fix resopones
 
-router.post('/', [auth_middlewares.validateUserSignupInput,
+router.post('/signup/', [auth_middlewares.validateUserSignupInput,
     auth_middlewares.verifyUserIsNotRegistered, auth_middlewares.hashUserPasswords], async (req, res) => {
-
-        //generate hash for user's password
-        // add user to DB and send the token
         
-    const {publicId, privateId} = idService.getPublicAndPrivateIds();
+    const {publicId} = idService.getPublicAndPrivateIds();
 
     const opt = verifyCredentialsService.generateOPT();
     await tempBD.addTempUser(req.newUser.firstName,
@@ -36,7 +30,7 @@ router.post('/', [auth_middlewares.validateUserSignupInput,
             req.newUser.firstName + req.newUser.lastName,
             opt);*/
     
-        res.status(200).json({message: 'Registered successfully'});
+        res.status(200).json({publicId});
 });
 
 
@@ -45,33 +39,28 @@ router.post('/verifyEmail/',[auth_middlewares.validateEmailVerificationInput,
 
     const user = req.userToAdd
 
-    console.log('stage 3');
-
     if (!user) { 
         res.status(500).json({message: 'bad req'});
-        console.log('stage 4');
         return;
     }
-    console.log('stage 5');
 
     const privateId = idService.getPrivateId(user.publicId);
-
 
     await userDB.addUser(
         user.firstName,
         user.lastName,
         user.email,
         user.publicId);
-        console.log('stage 6');
     await secretsBD.addSecret(user.hash, privateId);
 
     await tempBD.delteTempUser(user.publicId);
 
-    console.log('stage 7');
-    res.status(200).json({ message: `registered sucessfully verify email`, user: {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
+    const token = tokenService.generateToken(
+        user.firstName + ' ' + user.lastName,
+        user.publicId, privateId);
+    
+    res.status(200).json({code: 0, response: {
+        token: token,
         publicId: user.publicId
     } });
 })
